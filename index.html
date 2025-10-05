@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ขอเป็นแฟน 💖 (MP4 หรือ YouTube ก็ได้)</title>
+  <meta name="description" content="เว็บขอเป็นแฟน 3 ขั้นตอน: ข้อความ → วิดีโอ (รองรับ MP4/YouTube) → คำถาม" />
+  <style>
+    :root{
+      --rose-50:#fff1f2;--rose-100:#ffe4e6;--rose-200:#fecdd3;
+      --rose-500:#f43f5e;--rose-600:#e11d48;--rose-700:#be123c;
+    }
+    html,body{height:100%;margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,'Apple Color Emoji','Segoe UI Emoji';color:#3f1d2b;background:linear-gradient(180deg,var(--rose-50),#ffdbe1);}
+    .wrap{min-height:100%;display:flex;align-items:center;justify-content:center;padding:16px;position:relative;overflow:hidden;}
+    .card{background:#ffffffcc;backdrop-filter:blur(6px);border:1px solid var(--rose-100);border-radius:20px;box-shadow:0 10px 30px rgba(244,63,94,.15);padding:24px;max-width:680px;width:100%;}
+    h1,h2{margin:0 0 12px}
+    h1{color:var(--rose-600);font-size:28px;text-align:center}
+    h2{color:var(--rose-600);font-size:22px;text-align:center}
+    p{line-height:1.7}
+    .btn{display:inline-block;border-radius:14px;padding:12px 16px;border:1px solid var(--rose-200);background:#fff;color:var(--rose-600);cursor:pointer;font-weight:600}
+    .btn.primary{background:var(--rose-500);border-color:var(--rose-500);color:#fff}
+    .btn[disabled]{opacity:.5;cursor:not-allowed}
+    .grid{display:grid;gap:12px}
+    @media(min-width:760px){.grid-2{grid-template-columns:1fr 1fr}}
+    .muted{font-size:12px;color:#a14a5c}
+    .counter{color:#c23a59;font-size:12px}
+    .aspect-video{position:relative;width:100%;padding-top:56.25%;background:#0001;border:1px solid var(--rose-100);border-radius:14px;overflow:hidden}
+    .aspect-video>video,.aspect-video>iframe{position:absolute;inset:0;width:100%;height:100%}
+    .topbar{display:flex;align-items:center;justify-content:space-between;color:#c23a59;font-size:13px;margin-top:12px}
+    /* hearts bg */
+    .bg-heart{position:absolute;opacity:.12;user-select:none;pointer-events:none;animation:drift 6s ease-in-out infinite}
+    .bg-1{top:60px;left:24px;font-size:64px}
+    .bg-2{top:120px;right:28px;font-size:48px;animation-delay:1.2s}
+    .bg-3{bottom:120px;left:40px;font-size:76px;animation-delay:.6s}
+    .bg-4{bottom:60px;right:20px;font-size:64px;animation-delay:1.8s}
+    @keyframes drift{0%{transform:translateY(0)}50%{transform:translateY(-8px)}100%{transform:translateY(0)}}
+    /* celebration */
+    .cele{display:flex;align-items:center;justify-content:center;margin-bottom:8px}
+    .bigheart{font-size:56px;animation:bounce 1.6s ease-in-out infinite}
+    @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+    .falling{position:relative}
+    .falling span{position:absolute;top:-10vh;left:0;font-size:16px;color:#fb7185;opacity:0;animation:fall 4.2s linear infinite}
+    .falling span:nth-child(odd){color:#f43f5e}
+    @keyframes fall{
+      0%{transform:translateY(-10vh) translateX(0) rotate(0);opacity:0}
+      10%{opacity:1}
+      100%{transform:translateY(60vh) translateX(15vw) rotate(360deg);opacity:0}
+    }
+    .footer-note{font-size:11px;color:#a14a5c;margin-top:10px}
+    .nav{display:flex;align-items:center;justify-content:space-between;margin-top:12px;color:#c23a59;font-size:13px}
+    .link{font-size:13px;color:#c23a59;text-decoration:underline;cursor:pointer}
+    .center{text-align:center}
+  </style>
+  <script>
+    // Load YouTube Iframe API (only used when youtubeUrl is configured)
+    var ytApiRequested = false;
+    function loadYouTubeAPI(){
+      if (ytApiRequested) return;
+      ytApiRequested = true;
+      var tag = document.createElement('script');
+      tag.src = "https://www.youtube.com/iframe_api";
+      var firstScriptTag = document.getElementsByTagName('script')[0];
+      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+    }
+  </script>
+</head>
+<body>
+<div class="wrap">
+  <!-- hearts background -->
+  <div class="bg-heart bg-1">💗</div>
+  <div class="bg-heart bg-2">💘</div>
+  <div class="bg-heart bg-3">💕</div>
+  <div class="bg-heart bg-4">💝</div>
+
+  <div class="card">
+    <div id="app"></div>
+    <div class="topbar">
+      <button id="backBtn" class="link">&larr; ย้อนกลับ</button>
+      <span class="counter" id="counter">1/4</span>
+    </div>
+  </div>
+</div>
+
+<script>
+/** ---------- CONFIG แก้ค่าตรงนี้ ---------- */
+const CONFIG = {
+  yourName: "ผม",
+  partnerName: "เธอ",
+  message: "ตั้งแต่ได้รู้จักเธอ โลกของเราก็ดีขึ้นทุกวัน\\nเราอยากบอกความในใจผ่านเว็บเล็ก ๆ นี้\\nถ้าอ่านจบแล้ว กดไปหน้าถัดไปด้วยนะ 💌",
+  // เลือกอย่างใดอย่างหนึ่ง: ใส่ลิงก์ไฟล์ .mp4 ตรง ๆ หรือใส่ลิงก์ YouTube
+  videoUrl: "",          // ตัวอย่าง: ถ้าใส่ไฟล์ mp4 ไว้โฟลเดอร์เดียวกับ HTML ให้ใช้ชื่อไฟล์ เช่น 'video.mp4'
+  youtubeUrl: "https://www.youtube.com/watch?v=YWOHfAl-HzM&list=RDYWOHfAl-HzM&start_radio=1"                  // หรือใส่ลิงก์ YouTube เช่น "https://youtu.be/dQw4w9WgXcQ"
+  ,
+  yourEmail: "nainaiyarat46@gmail.com"
+};
+/** ----------------------------------------- */
+
+const el = (tag, attrs = {}, children = []) => {
+  const e = document.createElement(tag);
+  Object.entries(attrs).forEach(([k,v]) => {
+    if (k === "class") e.className = v;
+    else if (k === "text") e.textContent = v;
+    else if (k.startsWith("on") && typeof v === "function") e.addEventListener(k.slice(2), v);
+    else e.setAttribute(k, v);
+  });
+  (Array.isArray(children) ? children : [children]).forEach(c => {
+    if (c == null) return;
+    if (typeof c === "string") e.appendChild(document.createTextNode(c));
+    else e.appendChild(c);
+  });
+  return e;
+};
+
+let step = 0;         // 0: ข้อความ, 1: วิดีโอ, 2: คำถาม, 3: สรุป
+let videoDone = false;
+let answer = null;
+let ytPlayer = null;
+
+function render() {
+  const app = document.getElementById("app");
+  app.innerHTML = "";
+  document.getElementById("counter").textContent = (step+1)+"/4";
+  document.getElementById("backBtn").onclick = () => { if (step>0){ step--; answer=null; render(); }};
+
+  if (step === 0) {
+    const lines = CONFIG.message.split("\\n").map(t => el("p",{},t));
+    app.appendChild(el("div",{},[
+      el("h1",{},`ถึง ${CONFIG.partnerName}`),
+      el("div",{},lines),
+      el("div",{class:"center",style:"margin-top:16px"},[
+        el("button",{class:"btn primary", onclick:()=>{ step=1; render(); }}, "อ่านหน้าถัดไป ➜")
+      ]),
+      el("div",{class:"footer-note"}, "* แก้ไขข้อความ/วิดีโอ/อีเมลได้ที่ส่วน CONFIG ด้านบนของไฟล์")
+    ]));
+  }
+
+  if (step === 1) {
+    const container = el("div",{class:"aspect-video"});
+    const nextBtn = el("button",{class:"btn primary", disabled:!videoDone, onclick:()=>{ step=2; render(); }}, "ดูจบแล้ว ไปต่อ ➜");
+    const skipBtn = el("button",{class:"btn", onclick:()=>{ videoDone = true; nextBtn.removeAttribute('disabled'); }}, "ข้ามวิดีโอ (ไปต่อเลย)");
+
+    if (CONFIG.youtubeUrl && CONFIG.youtubeUrl.trim() !== "") {
+      // YouTube embed (detect ended via YouTube Iframe API)
+      const id = getYouTubeId(CONFIG.youtubeUrl);
+      if (!id) {
+        container.appendChild(el("div",{class:"center"}, "ลิงก์ YouTube ไม่ถูกต้อง"));
+      } else {
+        loadYouTubeAPI();
+        const div = el("div",{id:"player"});
+        container.appendChild(div);
+        // When API is ready it will call onYouTubeIframeAPIReady (global)
+        // We'll create the player there.
+        window.__initYT = () => {
+          if (window.YT && YT.Player) {
+            ytPlayer = new YT.Player('player', {
+              videoId: id,
+              playerVars: { modestbranding: 1, rel: 0 },
+              events: {
+                onStateChange: (e) => {
+                  // YT.PlayerState.ENDED === 0
+                  if (e.data === YT.PlayerState.ENDED) {
+                    videoDone = true;
+                    nextBtn.removeAttribute('disabled');
+                  }
+                }
+              }
+            });
+          }
+        };
+      }
+    } else {
+      // Direct MP4
+      const video = el("video",{controls:true,playsinline:true});
+      video.src = CONFIG.videoUrl;
+      video.onended = () => { videoDone = true; nextBtn.removeAttribute("disabled"); };
+      container.appendChild(video);
+    }
+
+    app.appendChild(el("div",{},[
+      el("h2",{},"วิดีโอสำหรับเธอ"),
+      container,
+      el("div",{class:"grid grid-2",style:"margin-top:12px"},[nextBtn, skipBtn]),
+      el("div",{class:"footer-note"},"* MP4 ให้ใส่ไฟล์ไว้โฟลเดอร์เดียวกับ HTML แล้วตั้งชื่อใน CONFIG.videoUrl / ถ้า YouTube ให้ใส่ลิงก์ใน CONFIG.youtubeUrl")
+    ]));
+  }
+
+  if (step === 2) {
+    const yesBtn = el("button",{class:"btn primary", onclick:()=>sendAnswer("ตกลง")}, "ตกลง 🥰");
+    const noBtn  = el("button",{class:"btn", onclick:()=>sendAnswer("ยังไม่ใช่")}, "ยังไม่ใช่ 😅");
+    app.appendChild(el("div",{},[
+      el("h2",{},"เป็นแฟนกันมั้ย? 🥹💘"),
+      el("p",{},"คำถามนี้สำคัญมาก เลยอยากให้เธอตอบจากใจจริง ๆ นะ"),
+      el("div",{class:"grid grid-2",style:"margin-top:12px"},[yesBtn,noBtn]),
+      el("div",{class:"footer-note"},`* เมื่อกดตอบจะเปิดอีเมลเพื่อส่งคำตอบให้ ${CONFIG.yourName}`)
+    ]));
+  }
+
+  if (step === 3) {
+    const yes = answer === "ตกลง";
+    const cele = yes ? el("div",{class:"cele falling"},[
+      el("div",{class:"bigheart"},"💖"),
+      ...Array.from({length:16}).map(()=>el("span",{}, "❤"))
+    ]) : null;
+
+    const copyLink = el("button",{class:"btn", onclick:async()=>{
+      try{ await navigator.clipboard.writeText(location.href); alert("คัดลอกลิงก์แล้ว!"); } catch(e){ alert("คัดลอกไม่สำเร็จ"); }
+    }},"คัดลอกลิงก์หน้านี้");
+
+    const backHome = el("button",{class:"btn primary", onclick:()=>{ step=0; render(); }},"กลับไปหน้าแรก");
+
+    const msg = yes ?
+      `ขอบคุณที่ตอบว่า "ตกลง" นะ ${CONFIG.partnerName}! เราสัญญาว่าจะดูแลเธอให้ดีที่สุด 💖` :
+      `ขอบคุณที่ตอบอย่างจริงใจ หากวันหนึ่งพร้อม เราจะถามเธออีกครั้งนะ :)`;
+
+    const title = yes ? "เย้! ดีใจที่สุดเลย 💞" : "ไม่เป็นไรนะ เราจะรอได้ 🫶";
+
+    const box = el("div",{},[
+      cele || "",
+      el("h2",{}, title),
+      el("p",{}, msg),
+      el("div",{class:"grid grid-2",style:"margin-top:16px"},[copyLink,backHome]),
+      el("div",{class:"footer-note"},"* หากอีเมลไม่เปิด อาจต้องกดอนุญาต หรือคัดลอกคำตอบส่งให้กันทาง LINE/แชต")
+    ]);
+    app.appendChild(box);
+
+    // falling hearts positions
+    if (cele){
+      const spans = cele.querySelectorAll("span");
+      spans.forEach((s,i)=>{ s.style.left = (5 + i* (90/(spans.length-1))) + '%'; s.style.animationDelay = (i*0.25)+'s'; });
+    }
+  }
+}
+
+function getYouTubeId(url){
+  try {
+    // support youtu.be/ID, youtube.com/watch?v=ID, youtube.com/embed/ID
+    const u = new URL(url);
+    if (u.hostname === 'youtu.be') return u.pathname.slice(1);
+    if (u.hostname.includes('youtube.com')){
+      if (u.searchParams.get('v')) return u.searchParams.get('v');
+      const m = u.pathname.match(/\\/embed\\/(.+)/);
+      if (m) return m[1];
+    }
+    return null;
+  } catch { return null; }
+}
+
+function sendAnswer(ans){
+  answer = ans;
+
+  // 1) Web Share API (ถ้ามี)
+  if (navigator.share){
+    navigator.share({title:"คำตอบขอเป็นแฟน", text:`คำตอบของฉันคือ: ${ans}`, url: location.href}).catch(()=>{});
+  }
+
+  // 2) เปิดอีเมล
+  const subject = encodeURIComponent(`คำตอบจาก ${CONFIG.partnerName}: ${ans}`);
+  const body = encodeURIComponent(`สวัสดี ${CONFIG.yourName}\n\nคำตอบของฉันคือ: ${ans}\n\n(ส่งจากหน้าเว็บขอเป็นแฟน 💖)`);
+  const mailto = `mailto:${CONFIG.yourEmail}?subject=${subject}&body=${body}`;
+  location.href = mailto;
+
+  // 3) เก็บลงเครื่องผู้ตอบ
+  try{ localStorage.setItem("love-answer", ans); }catch{}
+
+  step = 3; render();
+}
+
+render();
+
+// YouTube API callback
+function onYouTubeIframeAPIReady(){
+  if (typeof window.__initYT === 'function') window.__initYT();
+}
+</script>
+</body>
+</html>
